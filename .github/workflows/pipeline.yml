@@ -23,4 +23,10 @@ jobs:
       - name: dockerize
         run: |
           docker build -t sample:env .
-          echo "::set-output name=image::sample:env"
+          echo "::set-output name=image::sample:env"    
+      - name: Run Snyk to check Docker image for vulnerabilities
+      - uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: sample:env
