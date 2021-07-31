@@ -1,72 +1,93 @@
-name: "Pull Request deploy"
-
-on:
+name: Pull Request deploy
+true:
   pull_request:
-    types: [labeled, opened, synchronize]
-
+    types:
+    - labeled
+    - opened
+    - synchronize
 jobs:
   deploy:
-    if: |
-      (github.event.action == 'labeled' && github.event.label.name == 'PR-Deploy') ||
-      (github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'PR-Deploy'))
+    if: '(github.event.action == ''labeled'' && github.event.label.name == ''PR-Deploy'')
+      ||
+
+      (github.event.action != ''labeled'' && contains(github.event.pull_request.labels.*.name,
+      ''PR-Deploy''))
+
+      '
     runs-on: ubuntu-latest
     steps:
-      - name: inject slug/short variables
-        uses: rlespinasse/github-slug-action@v3.x
-
-      - name: set STAGE variable in environment for next steps
-        run: echo "STAGE=pr-${{ github.event.number }}-${{ env.GITHUB_HEAD_REF_SLUG }}" >> $GITHUB_ENV
-
-      - name: create a github deployment
-        uses: bobheadxi/deployments@v0.5.2
-        id: deployment
+    - name: inject slug/short variables
+      uses: rlespinasse/github-slug-action@v3.x
+      visible: false
+    - name: set STAGE variable in environment for next steps
+      run: echo "STAGE=pr-${{ github.event.number }}-${{ env.GITHUB_HEAD_REF_SLUG
+        }}" >> $GITHUB_ENV
+      visible: true
+    - id: deployment
+      name: create a github deployment
+      uses: bobheadxi/deployments@v0.5.2
+      visible: true
+      with:
+        env: ${{ env.STAGE }}
+        no_override: false
+        ref: ${{ github.head_ref }}
+        step: start
+        token: ${{ secrets.PR_TOKEN || github.token }}
+        transient: true
+    - name: checkout the files
+      uses: actions/checkout@v2
+      visible: false
+    - name: configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      visible: true
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-region: us-east-2
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    - name: npm install
+      run: sudo apt update -y && sudo apt install nodejs npm -y
+      visible: true
+    - - name: CodeGuru Reviewer
+        uses: aws-actions/codeguru-reviewer@v1.1
         with:
-          step: start
-          token: ${{ secrets.PR_TOKEN || github.token }}
-          env: ${{ env.STAGE }}
-          ref: ${{ github.head_ref }}
-          no_override: false
-          transient: true
-
-      - name: checkout the files
-        uses: actions/checkout@v2
-
-#       - name: install node dependencies
-#         uses: bahmutov/npm-install@v1
-#         with:
-#           useLockFile: false
-
-      - name: configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+          build_path: .
+          s3_bucket: 'codeguru-reviewer-pr  # S3 Bucket with "codeguru-reviewer-*"
+            prefix'
+      - name: Upload review result
+        uses: github/codeql-action/upload-sarif@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
-
-      - name: npm install
-        run: 'sudo apt update -y && sudo apt install nodejs npm -y'
-
-      - name: cdk install
-        run: 'sudo npm install -g aws-cdk'
-
-      - name: Installing pip dependencies
-        run: 'pip3 install -r requirements.txt'
-
-
-      - name: deploy
-        id: cdk_deploy
-        run: cdk deploy \"AwesomeStack-${STAGE}\" --require-approval never --outputs-file cdk.out.json
-
-      - name: post deploy
-        id: cdk_post_deploy
-        run: "node --eval \"console.log('::set-output name=env_url::' + require('./cdk.out.json')['AwesomeStack-${STAGE}'].DeploymentUrl)\""
-      
-      - name: update the github deployment status
-        uses: bobheadxi/deployments@v0.5.2
-        if: always()
-        with:
-          step: finish
-          token: ${{ secrets.PR_TOKEN || github.token }}
-          status: ${{ job.status }}
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
-          env_url: ${{ steps.cdk_post_deploy.outputs.env_url }}
+          sarif_file: codeguru-results.sarif.json
+    - env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      name: Snyk monitor
+      run: snyk test
+      uses: snyk/actions/setup@master
+    - name: cdk install
+      run: sudo npm install -g aws-cdk
+      visible: true
+    - name: ZAP DAST Scan
+      uses: zaproxy/action-full-scan@v0.2.0
+      with:
+        target: ${{ steps.cdk_post_deploy.outputs.env_url }}
+    - name: Installing pip dependencies
+      run: pip3 install -r requirements.txt
+      visible: true
+    - id: cdk_deploy
+      name: deploy
+      run: cdk deploy \"AwesomeStack-${STAGE}\" --require-approval never --outputs-file
+        cdk.out.json
+      visible: true
+    - id: cdk_post_deploy
+      name: post deploy
+      run: node --eval "console.log('::set-output name=env_url::' + require('./cdk.out.json')['AwesomeStack-${STAGE}'].DeploymentUrl)"
+      visible: true
+    - if: always()
+      name: update the github deployment status
+      uses: bobheadxi/deployments@v0.5.2
+      visible: true
+      with:
+        deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+        env_url: ${{ steps.cdk_post_deploy.outputs.env_url }}
+        status: ${{ job.status }}
+        step: finish
+        token: ${{ secrets.PR_TOKEN || github.token }}
