@@ -47,24 +47,6 @@ jobs:
     - name: npm install
       run: sudo apt update -y && sudo apt install nodejs npm -y
       visible: true
-    - name: Upload review result
-      uses: github/codeql-action/upload-sarif@v1
-      with:
-        sarif_file: codeguru-results.sarif.json
-    - env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      name: Snyk monitor
-      run: snyk test
-      uses: snyk/actions/setup@master
-    - name: CodeGuru Reviewer
-      uses: aws-actions/codeguru-reviewer@v1.1
-      with:
-        build_path: .
-        s3_bucket: 'codeguru-reviewer-pr  # S3 Bucket with "codeguru-reviewer-*" prefix'
-    - name: ZAP DAST Scan
-      uses: zaproxy/action-full-scan@v0.2.0
-      with:
-        target: ${{ steps.cdk_post_deploy.outputs.env_url }}
     - name: cdk install
       run: sudo npm install -g aws-cdk
       visible: true
