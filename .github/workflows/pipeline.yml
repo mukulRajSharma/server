@@ -6,10 +6,9 @@ on:
       - 'main'
   pull_request: {}
 
-jobs:
-  build_test_release:
+jobs:    
+  deploy:
     runs-on: 'ubuntu-latest'
- 
     steps:
       - uses: actions/checkout@v2
       - name: use Node.js
