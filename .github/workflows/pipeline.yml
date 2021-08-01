@@ -10,7 +10,8 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
     steps:
-      - uses: actions/checkout@v2
+      - name: checkout step
+        uses: actions/checkout@v2
       - name: use Node.js
         uses: actions/setup-node@v2
       - name: install
