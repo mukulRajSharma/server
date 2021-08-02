@@ -1,49 +1,26 @@
+
 name: ci
-true:
-  pull_request: {}
+
+on:
   push:
     branches:
-    - main
-jobs:
+      - 'main'
+  pull_request: {}
+
+jobs:    
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: 'ubuntu-latest'
     steps:
-    - name: checkout step
-      uses: actions/checkout@v2
-      visible: false
-    - name: use Node.js
-      uses: actions/setup-node@v2
-      visible: true
-    - name: install
-      run: npm install
-      visible: true
-    - name: build
-      run: npm run build
-      visible: true
-    - name: ZAP DAST Scan
-      uses: zaproxy/action-full-scan@v0.2.0
-      with:
-        target: '''http://flask-app-319191450.us-east-2.elb.amazonaws.com/'''
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: test
-      run: npm run test
-      visible: true
-    - continue-on-error: true
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      name: Run Snyk to check Docker image for vulnerabilities
-      uses: snyk/actions/docker@master
-      with:
-        args: --file=Dockerfile
-        image: sample:env
-    - name: Upload result to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v1
-      with:
-        sarif_file: snyk.sarif
-    - name: dockerize
-      run: 'docker build -t sample:env .
-
-        echo "::set-output name=image::sample:env"
-
-        '
-      visible: true
+      - uses: actions/checkout@v2
+      - name: use Node.js
+        uses: actions/setup-node@v2
+      - name: install
+        run: npm install
+      - name: build
+        run: npm run build
+      - name: test
+        run: npm run test
+      - name: dockerize
+        run: |
+          docker build -t sample:env .
+          echo "::set-output name=image::sample:env"
